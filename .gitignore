@@ -1,0 +1,6 @@
+.env/
+.idea/
+db.sqlite3
+dummy.db
+python.py
+nginx/
