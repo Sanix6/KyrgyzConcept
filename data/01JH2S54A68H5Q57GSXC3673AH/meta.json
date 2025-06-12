@@ -1,0 +1,17 @@
+{
+	"ulid": "01JH2S54A68H5Q57GSXC3673AH",
+	"minTime": 1736323206285,
+	"maxTime": 1736330400000,
+	"stats": {
+		"numSamples": 2400,
+		"numSeries": 5,
+		"numChunks": 21
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01JH2S54A68H5Q57GSXC3673AH"
+		]
+	},
+	"version": 1
+}
