@@ -10,10 +10,9 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 
-
 app.conf.beat_schedule = {
-    "refresh-etm-token-every-6-hours": {
-        "task": "apps.service.auth.etmlogin.update_etm_token",
-        "schedule": crontab(minute=0, hour='*/6'),
+    'update-etm-token-every-5-minutes': {
+        'task': 'apps.service.auth.etmlogin.update_etm_token',
+        'schedule': 300.0,  
     },
 }

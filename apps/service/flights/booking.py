@@ -1,8 +1,21 @@
-import json
 import requests
 from typing import List, Dict, Any
+from apps.service.auth.etmlogin import get_etm_session
 
 API_URL = "https://stage-api.etm-system.ru"
+
+
+from datetime import date
+
+def serialize_for_json(data: Any) -> Any:
+    if isinstance(data, dict):
+        return {k: serialize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [serialize_for_json(i) for i in data]
+    elif isinstance(data, date):
+        return data.isoformat()  
+    else:
+        return data
 
 def create_order(
     buy_id: str,
@@ -11,9 +24,10 @@ def create_order(
     address: Dict[str, str],
     passengers: List[Dict[str, Any]]
 ) -> requests.Response:
-    
-    url = f"{API_URL}/api/air/search"
-    
+    session = get_etm_session()
+
+    url = f"{API_URL}/api/air/orders"
+
     payload = {
         "buy_id": buy_id,
         "phone": phone,
@@ -22,10 +36,8 @@ def create_order(
         "passengers": passengers
     }
 
-    headers = {
-        "Content-Type": "application/json"
-    }
+    payload = serialize_for_json(payload)
 
-    response = requests.post(url, data=json.dumps(payload, default=str), headers=headers)
+    response = session.post(url, json=payload)
     response.raise_for_status()
     return response

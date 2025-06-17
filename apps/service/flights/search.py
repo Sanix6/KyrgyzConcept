@@ -51,28 +51,11 @@ def search_flights(
 
 def get_schedule(request_id: str) -> dict:
     url = f"{API_URL}/api/air/schedule"
-    token = get_etm_session()
+    session = get_etm_session()
 
     payload = {
         "request_id": request_id
     }
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-
-    try:
-        with requests.Session() as session:
-            session.headers.update(headers)
-            response = session.post(url, json=payload, timeout=10)
-            print("Status Code:", response.status_code)
-            print("Response Text:", response.text)
-            response.raise_for_status()
-            return response.json()
-
-    except requests.RequestException as e:
-        raise RuntimeError(f"Ошибка при получении расписания: {e}")
-    except ValueError:
-        raise ValueError("Неправильный JSON ответ от расписания API.")
+    response = session.post(url, json=payload)
+    response.raise_for_status()
+    return response.json()

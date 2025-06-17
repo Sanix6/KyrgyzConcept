@@ -55,26 +55,6 @@ class GetScheduleView(generics.GenericAPIView):
             return Response({"Ошибка": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-class EtmLoginView(generics.GenericAPIView):
-    """Вход в ETM."""
-    serializer_class = serializers.EtmLoginSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        login = serializer.validated_data['login']
-        password = serializer.validated_data['password']
-
-        try:
-            result = get_etm_session(login, password)
-            return Response(result, status=status.HTTP_200_OK)
-        except RuntimeError as e:
-            return Response({"Ошибка": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except ValueError as e:
-            return Response({"Ошибка": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 class CreateOrderView(generics.GenericAPIView):
     serializer_class = serializers.OrderRequestSerializer
