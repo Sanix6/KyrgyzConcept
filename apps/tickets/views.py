@@ -8,7 +8,7 @@ import requests
 
 
 from . import serializers
-from apps.service.flights import search, booking
+from apps.service.flights import search, booking, payment, order
 from apps.service.auth.etmlogin import get_etm_session
 
 
@@ -76,3 +76,66 @@ class CreateOrderView(generics.GenericAPIView):
             return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
         return Response(api_response.json(), status=api_response.status_code)
+    
+
+class OrderPaymentView(generics.GenericAPIView):
+    serializer_class = serializers.OrderPaymentSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        order_id = data['order_id']
+        headers = get_etm_session().headers
+
+        try:
+            api_response = payment.order_payment(
+                order_id=order_id,
+                for_type=data['for_type'],
+                currency=data['currency'],
+                total_amount=data['total_amount'],
+                headers=headers
+            )
+        except requests.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(api_response, status=status.HTTP_200_OK)
+    
+class GetOrderInfoView(views.APIView):
+    """Получение информации о заказе."""
+    def get(self, request, order_id, *args, **kwargs):
+        headers = get_etm_session().headers
+        
+        try:
+            api_response = order.get_order_info(order_id=order_id, headers=headers)
+        except requests.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(api_response, status=status.HTTP_200_OK)
+    
+
+class OrderStatusView(views.APIView):
+    """Получение статуса заказа."""
+    def get(self, request, order_id, *args, **kwargs):
+        headers = get_etm_session().headers
+        
+        try:
+            api_response = payment.get_payment_status(order_id=order_id, headers=headers)
+        except requests.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(api_response, status=status.HTTP_200_OK)
+    
+
+class CancelOrderView(views.APIView):
+    """Отмена заказа."""
+    def get(self, request, order_id, *args, **kwargs):
+        headers = get_etm_session().headers
+        
+        try:
+            api_response = booking.cancel_order(order_id=order_id, headers=headers)
+        except requests.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(api_response, status=status.HTTP_200_OK)

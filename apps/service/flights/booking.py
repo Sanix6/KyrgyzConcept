@@ -1,11 +1,11 @@
 import requests
 from typing import List, Dict, Any
+from datetime import date
 from apps.service.auth.etmlogin import get_etm_session
+from rest_framework import status
+
 
 API_URL = "https://stage-api.etm-system.ru"
-
-
-from datetime import date
 
 def serialize_for_json(data: Any) -> Any:
     if isinstance(data, dict):
@@ -41,3 +41,21 @@ def create_order(
     response = session.post(url, json=payload)
     response.raise_for_status()
     return response
+
+
+def cancel_order(
+    order_id: str,
+    headers: Dict[str, str] = None,
+) -> Dict[str, Any]:
+    """Отмена заказа."""
+    url = f"https://stage-api.etm-system.ru/api/air/orders/{order_id}/void"
+    
+    try:
+        response = requests.post(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {
+            "error": str(e),
+            "status_code": response.status_code if response else status.HTTP_500_INTERNAL_SERVER_ERROR
+        }
