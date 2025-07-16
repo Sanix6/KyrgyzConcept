@@ -1,4 +1,7 @@
 from rest_framework import serializers
+from apps.tickets.models import  Passenger, Order
+from django.db import transaction
+
 
 class DirectionSerializer(serializers.Serializer):
     departure_code = serializers.CharField(max_length=3)
@@ -10,53 +13,45 @@ class FlightSearchSerializer(serializers.Serializer):
     adult_qnt = serializers.IntegerField(min_value=0)
     child_qnt = serializers.IntegerField(min_value=0)
     infant_qnt = serializers.IntegerField(min_value=0)
-    class_ = serializers.CharField(source='class', max_length=1)
-    airlines = serializers.ListField(
-        child=serializers.CharField(max_length=10), required=False
-    )
-    providers = serializers.ListField(
-        child=serializers.IntegerField(), required=False
-    )
+    class_ = serializers.CharField(source='class',default='E', required=False, max_length=1)
+
 
 class RequestIdSerializer(serializers.Serializer):
     request_id = serializers.CharField(max_length=36, required=True, help_text="ID запроса для получения расписания")
 
 
-class EtmLoginSerializer(serializers.Serializer):
-    login = serializers.CharField(max_length=100, required=True, help_text="Логин для входа в ETM")
-    password = serializers.CharField(max_length=100, write_only=True, required=True, help_text="Пароль для входа в ETM")
-
-
 class PhoneSerializer(serializers.Serializer):
-    code = serializers.CharField()
-    number = serializers.CharField()
-    extra = serializers.CharField(allow_blank=True, required=False)
+    code = serializers.CharField(max_length=10)
+    number = serializers.CharField(max_length=20)
+    extra = serializers.CharField(max_length=10, required=False, allow_blank=True)
 
-class AddressSerializer(serializers.Serializer):
-    zip = serializers.CharField()
-    country = serializers.CharField()
-    city = serializers.CharField()
-    additional = serializers.CharField()
 
 class DocumentSerializer(serializers.Serializer):
-    type = serializers.CharField()
-    number = serializers.CharField()
-    expire = serializers.DateField()
+    document_type = serializers.CharField()
+    document_number = serializers.CharField()
+    document_expire = serializers.DateField()
 
-class PassengerSerializer(serializers.Serializer):
-    type = serializers.CharField()
-    gender = serializers.CharField()
-    last_name = serializers.CharField()
-    first_name = serializers.CharField()
-    middle_name = serializers.CharField()
-    birth_date = serializers.DateField()
-    citizenship = serializers.CharField()
+class PassengerSerializer(serializers.ModelSerializer):
     document = DocumentSerializer()
-    frequent_numbers = serializers.ListField(child=serializers.CharField(), required=False)
 
-class OrderRequestSerializer(serializers.Serializer):
-    buy_id = serializers.CharField()
+    class Meta:
+        model = Passenger
+        fields = ['type', 'gender', 'last_name', 'first_name', 'middle_name', 'birth_date', 'document']
+
+
+class OrderRequestSerializer(serializers.ModelSerializer):
+    buy_id  = serializers.CharField(max_length=36, required=True, help_text="ID рейса для покупки")
     phone = PhoneSerializer()
     emails = serializers.ListField(child=serializers.EmailField())
-    address = AddressSerializer()
     passengers = PassengerSerializer(many=True)
+
+    class Meta:
+        model = Order
+        fields = ['buy_id', 'phone', 'emails', 'passengers']
+
+
+class OrderPaymentSerializer(serializers.Serializer):
+    order_id = serializers.CharField()
+    for_type = serializers.ChoiceField(choices=["avia", "hotel", "bus"])  
+    currency = serializers.ChoiceField(choices=["KGS", "USD", "EUR"])   
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2)

@@ -17,7 +17,6 @@ def search_flights(
     infant_qnt: int = 0,
     travel_class: str = "E",
     airlines: Optional[List[str]] = None,
-    providers: Optional[List[int]] = None,
     timeout: int = 10
 ) -> dict:
     session = get_etm_session()
@@ -38,8 +37,6 @@ def search_flights(
 
     if airlines:
         payload["airlines"] = airlines
-    if providers:
-        payload["providers"] = providers
 
     url = f"{API_URL}/api/air/search"
     response = session.post(url, json=payload, timeout=timeout)

@@ -5,10 +5,12 @@ from django.shortcuts import render
 from rest_framework import status, generics, views
 from rest_framework.response import Response
 import requests
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 
 from . import serializers
 from apps.service.flights import search, booking, payment, order
+from apps.service.common import save
 from apps.service.auth.etmlogin import get_etm_session
 
 
@@ -32,11 +34,44 @@ class SearchFlightsView(generics.GenericAPIView):
             infant_qnt=data['infant_qnt'],
             travel_class=data['class'],
             airlines=data.get('airlines'),
-            providers=data.get('providers'),
         )
         
         return Response(result, status=status.HTTP_200_OK)
     
+
+@extend_schema(parameters=[OpenApiParameter("order_id",str,OpenApiParameter.PATH,description="ID заказа (order_id)")],)
+class GetOrderInfoView(views.APIView):
+    """Получение информации о заказе по order_id."""
+
+    def get(self, request, order_id, *args, **kwargs):
+        try:
+            result = order.get_order_info(order_id)
+            return Response(result, status=status.HTTP_200_OK)
+        except requests.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+@extend_schema(parameters=[OpenApiParameter("buy_id", str, OpenApiParameter.PATH, description="ID конкретного рейса (buy_id)")],)
+class CheckOfferAvailiblityView(views.APIView):
+    """Получение деталей рейса по buy_id."""
+    def get(self, request, buy_id, *args, **kwargs):
+        try:
+            result = order.check_offer_avail(buy_id)
+            return Response(result, status=status.HTTP_200_OK)
+        except RuntimeError as e:
+            return Response({"Ошибка": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@extend_schema(parameters=[OpenApiParameter("order_id", str, OpenApiParameter.PATH, description="ID конкретного заказа")],)
+class CancelOrderView(views.APIView):
+    """Отмена заказа."""
+    def get(self, request, order_id, *args, **kwargs):
+        try:
+            api_response = booking.cancel_order(order_id)
+            return Response(api_response, status=status.HTTP_200_OK)
+        except requests.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
 
 class GetScheduleView(generics.GenericAPIView):
     """Получение расписания по request_id запроса."""
@@ -54,8 +89,6 @@ class GetScheduleView(generics.GenericAPIView):
         except RuntimeError as e:
             return Response({"Ошибка": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-
-
 class CreateOrderView(generics.GenericAPIView):
     serializer_class = serializers.OrderRequestSerializer
 
@@ -64,18 +97,22 @@ class CreateOrderView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
+
         try:
             api_response = booking.create_order(
                 buy_id=data["buy_id"],
                 phone=data["phone"],
                 emails=data["emails"],
-                address=data["address"],
                 passengers=data["passengers"]
             )
+            api_data = api_response.json()
         except requests.RequestException as e:
-            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            return Response({"error": f"Ошибка при обращении к API: {str(e)}"},
+                            status=status.HTTP_502_BAD_GATEWAY)
 
-        return Response(api_response.json(), status=api_response.status_code)
+        save.save_booking(api_data)
+
+        return Response(api_data, status=api_response.status_code)
     
 
 class OrderPaymentView(generics.GenericAPIView):
@@ -102,18 +139,7 @@ class OrderPaymentView(generics.GenericAPIView):
 
         return Response(api_response, status=status.HTTP_200_OK)
     
-class GetOrderInfoView(views.APIView):
-    """Получение информации о заказе."""
-    def get(self, request, order_id, *args, **kwargs):
-        headers = get_etm_session().headers
-        
-        try:
-            api_response = order.get_order_info(order_id=order_id, headers=headers)
-        except requests.RequestException as e:
-            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
-        return Response(api_response, status=status.HTTP_200_OK)
-    
 
 class OrderStatusView(views.APIView):
     """Получение статуса заказа."""
@@ -128,14 +154,18 @@ class OrderStatusView(views.APIView):
         return Response(api_response, status=status.HTTP_200_OK)
     
 
-class CancelOrderView(views.APIView):
-    """Отмена заказа."""
-    def get(self, request, order_id, *args, **kwargs):
-        headers = get_etm_session().headers
-        
-        try:
-            api_response = booking.cancel_order(order_id=order_id, headers=headers)
-        except requests.RequestException as e:
-            return Response({"error": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+@extend_schema(parameters=[OpenApiParameter(name="request_id",type=str,location=OpenApiParameter.QUERY,required=True,)],)
+class GetOffersView(views.APIView):
+    """Получение списка рейсов по request_id (через query-параметр)."""
 
-        return Response(api_response, status=status.HTTP_200_OK)
+    def get(self, request, *args, **kwargs):
+        request_id = request.query_params.get("request_id")
+        if not request_id:
+            return Response({"error": "Параметр request_id обязателен."}, status=status.HTTP_400_BAD_REQUEST)
+    
+        try:
+            result = order.get_offers(request_id)
+            return Response(result, status=status.HTTP_200_OK)
+        except RuntimeError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+

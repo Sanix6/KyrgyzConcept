@@ -15,8 +15,8 @@ def update_etm_token():
 
     url = f"{ETM_API_URL}/api/login"
     data = {
-        "login": settings.ETM_LOGIN,
-        "password": settings.ETM_PASSWORD,
+        "login": ETM_LOGIN,
+        "password":ETM_PASSWORD,
     }
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -44,6 +44,7 @@ def get_etm_session():
     session.headers.update({
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
+        "Accept": "application/json"
     })
     session.cookies.update(cookies)
 

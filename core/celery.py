@@ -11,8 +11,8 @@ app.autodiscover_tasks()
 
 
 app.conf.beat_schedule = {
-    'update-etm-token-every-5-minutes': {
+    'update_etm_token': {
         'task': 'apps.service.auth.etmlogin.update_etm_token',
-        'schedule': 300.0,  
+        'schedule': 18000.0,  
     },
 }

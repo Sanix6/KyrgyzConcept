@@ -25,7 +25,9 @@ INSTALLED_APPS = [
     "django_celery_beat",
 
     #apps
-    "apps.main"
+    "apps.main",
+    "apps.user",
+    "apps.tickets",
 ]
 
 MIDDLEWARE = [
@@ -80,12 +82,8 @@ DATABASES = {
 
 #CORS SETTINGS
 CORS_ALLOW_METHODS = ("GET", "OPTIONS", "PATCH", "POST", "PUT", "DELETE")
-# CSRF_TRUSTED_ORIGINS = [
-#    ""
-# ]
-# CORS_ALLOWED_ORIGINS = [
-#     ""
-# ]
+CSRF_TRUSTED_ORIGINS = ["http://*"]
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 

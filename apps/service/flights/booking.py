@@ -21,18 +21,18 @@ def create_order(
     buy_id: str,
     phone: Dict[str, str],
     emails: List[str],
-    address: Dict[str, str],
+    # address: Dict[str, str],
     passengers: List[Dict[str, Any]]
 ) -> requests.Response:
     session = get_etm_session()
 
-    url = f"{API_URL}/api/air/orders"
+    url = "https://stage-api.etm-system.ru/api/air/orders"
 
     payload = {
         "buy_id": buy_id,
         "phone": phone,
         "emails": emails,
-        "address": address,
+        # "address": address,
         "passengers": passengers
     }
 
@@ -43,19 +43,16 @@ def create_order(
     return response
 
 
-def cancel_order(
-    order_id: str,
-    headers: Dict[str, str] = None,
-) -> Dict[str, Any]:
+def cancel_order(order_id: str, headers: Dict[str, str] = None) -> Dict[str, Any]:
     """Отмена заказа."""
     url = f"https://stage-api.etm-system.ru/api/air/orders/{order_id}/void"
-    
+    session = get_etm_session()
     try:
-        response = requests.post(url, headers=headers)
+        response = session.get(url, headers=headers)  
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
         return {
             "error": str(e),
-            "status_code": response.status_code if response else status.HTTP_500_INTERNAL_SERVER_ERROR
+            "status_code": getattr(e.response, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR)
         }
